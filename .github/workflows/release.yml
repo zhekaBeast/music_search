@@ -1,0 +1,122 @@
+name: Build Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+
+  android:
+    name: 📱 Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔨 Build APK
+        run: flutter build apk --release
+
+      - name: 📤 Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  windows:
+    name: 🪟 Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔨 Build Windows
+        run: flutter build windows --release
+
+      - name: 📦 Archive Windows Build
+        shell: powershell
+        run: |
+          Compress-Archive `
+            build/windows/x64/runner/Release/* `
+            music-search-windows.zip
+
+      - name: 📤 Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: music-search-windows.zip
+  linux:
+    name: 🐧 Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 📦 Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev
+
+      - name: 📦 Install Flutter dependencies
+        run: flutter pub get
+
+      - name: 🔨 Build Linux
+        run: flutter build linux --release
+
+      - name: 📦 Archive Linux Build
+        run: |
+          tar -czf music-search-linux.tar.gz \
+            -C build/linux/x64/release/bundle .
+
+      - name: 📤 Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: music-search-linux.tar.gz
